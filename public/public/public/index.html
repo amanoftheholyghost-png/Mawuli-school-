@@ -1,0 +1,143 @@
+<script>
+const API = ''; // same origin
+
+async function apiGet(url) { return (await fetch(API + url)).json(); }
+async function apiPost(url, data) {
+  return (await fetch(API + url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })).json();
+}
+async function apiDelete(url) {
+  return (await fetch(API + url, { method: 'DELETE' })).json();
+}
+
+let students = [], fees = [], studentAtt = [], teacherAtt = [];
+
+function showPage(id, e) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  e.target.classList.add('active');
+}
+
+async function loadAll() {
+  [students, fees, studentAtt, teacherAtt] = await Promise.all([
+    apiGet('/api/students'),
+    apiGet('/api/fees'),
+    apiGet('/api/attendance/students'),
+    apiGet('/api/attendance/teachers')
+  ]);
+  renderAll();
+}
+
+async function addStudent() {
+  const id = document.getElementById('sId').value.trim();
+  const name = document.getElementById('sName').value.trim();
+  const cls = document.getElementById('sClass').value.trim();
+  const phone = document.getElementById('sPhone').value.trim();
+  if (!id || !name) return alert('ID and name required');
+  const res = await apiPost('/api/students', { id, name, class: cls, phone });
+  if (res.error) return alert(res.error);
+  document.getElementById('sId').value = '';
+  document.getElementById('sName').value = '';
+  document.getElementById('sClass').value = '';
+  document.getElementById('sPhone').value = '';
+  loadAll();
+}
+
+async function deleteStudent(id) {
+  if (!confirm('Delete this student?')) return;
+  await apiDelete('/api/students/' + id);
+  loadAll();
+}
+
+async function addFee() {
+  const studentId = document.getElementById('feeStudent').value;
+  const amount = parseFloat(document.getElementById('feeAmount').value);
+  const date = document.getElementById('feeDate').value;
+  if (!studentId || !amount || !date) return alert('Fill all fields');
+  await apiPost('/api/fees', { studentId, amount, date });
+  document.getElementById('feeAmount').value = '';
+  document.getElementById('feeDate').value = '';
+  loadAll();
+}
+async function deleteFee(id) {
+  if (!confirm('Delete?')) return;
+  await apiDelete('/api/fees/' + id);
+  loadAll();
+}
+
+async function markStudentAttendance() {
+  const studentId = document.getElementById('attStudent').value;
+  const date = document.getElementById('attDate').value;
+  const status = document.getElementById('attStatus').value;
+  if (!studentId || !date) return alert('Fill all fields');
+  await apiPost('/api/attendance/students', { studentId, date, status });
+  document.getElementById('attDate').value = '';
+  loadAll();
+}
+async function deleteStudentAtt(id) {
+  await apiDelete('/api/attendance/students/' + id);
+  loadAll();
+}
+
+async function markTeacherAttendance() {
+  const name = document.getElementById('tName').value.trim();
+  const date = document.getElementById('tDate').value;
+  const status = document.getElementById('tStatus').value;
+  if (!name || !date) return alert('Fill all fields');
+  await apiPost('/api/attendance/teachers', { name, date, status });
+  document.getElementById('tName').value = '';
+  document.getElementById('tDate').value = '';
+  loadAll();
+}
+async function deleteTeacherAtt(id) {
+  await apiDelete('/api/attendance/teachers/' + id);
+  loadAll();
+}
+
+function renderAll() {
+  document.getElementById('studentList').innerHTML = students.length
+    ? students.map(s => `<tr>
+        <td>${s.id}</td><td>${s.name}</td><td>${s.class || '-'}</td><td>${s.phone || '-'}</td>
+        <td><button class="btn danger" onclick="deleteStudent('${s.id}')">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No students</td></tr>';
+  document.getElementById('totalStudents').textContent = students.length;
+
+  document.getElementById('feeStudent').innerHTML = students.length
+    ? students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('')
+    : '<option>No students</option>';
+  document.getElementById('attStudent').innerHTML = document.getElementById('feeStudent').innerHTML;
+
+  document.getElementById('feeList').innerHTML = fees.length
+    ? fees.map(f => `<tr>
+        <td>${f.studentName}</td><td>GHS ${Number(f.amount).toFixed(2)}</td>
+        <td>${f.date}</td><td class="status-paid">Paid</td>
+        <td><button class="btn danger" onclick="deleteFee(${f.id})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No payments</td></tr>';
+  const total = fees.reduce((s, f) => s + Number(f.amount), 0);
+  document.getElementById('totalCollected').textContent = 'GHS ' + total.toFixed(2);
+
+  document.getElementById('studentAttList').innerHTML = studentAtt.length
+    ? studentAtt.map(a => `<tr>
+        <td>${a.studentName}</td><td>${a.date}</td>
+        <td class="status-${a.status.toLowerCase()}">${a.status}</td>
+        <td><button class="btn danger" onclick="deleteStudentAtt(${a.id})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No records</td></tr>';
+
+  document.getElementById('teacherAttList').innerHTML = teacherAtt.length
+    ? teacherAtt.map(a => `<tr>
+        <td>${a.teacher_name}</td><td>${a.date}</td>
+        <td class="status-${a.status.toLowerCase()}">${a.status}</td>
+        <td><button class="btn danger" onclick="deleteTeacherAtt(${a.id})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No records</td></tr>';
+}
+
+loadAll();
+          </script>
