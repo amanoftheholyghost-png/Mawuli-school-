@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mawuli School SHS - Management System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+  header { background: #1a4d8f; color: white; padding: 20px; text-align: center; }
+  header h1 { font-size: 24px; }
+  header p { font-size: 14px; opacity: 0.9; }
+  nav { background: #2c5fa8; display: flex; flex-wrap: wrap; }
+  nav button {
+    flex: 1; padding: 15px; background: none; border: none;
+    color: white; cursor: pointer; font-size: 14px; min-width: 150px;
+  }
+  nav button:hover { background: #1a4d8f; }
+  nav button.active { background: #0d2f5c; font-weight: bold; }
+  .container { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
+  .page { display: none; background: white; padding: 25px; border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .page.active { display: block; }
+  h2 { color: #1a4d8f; margin-bottom: 15px; border-bottom: 2px solid #1a4d8f; padding-bottom: 8px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+  input, select {
+    padding: 10px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 150px;
+  }
+  button.btn {
+    padding: 10px 20px; background: #1a4d8f; color: white; border: none;
+    border-radius: 4px; cursor: pointer; font-size: 14px;
+  }
+  button.btn:hover { background: #0d2f5c; }
+  button.danger { background: #c0392b; }
+  button.danger:hover { background: #922b21; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14px; }
+  th { background: #1a4d8f; color: white; }
+  tr:hover { background: #f5f5f5; }
+  .status-present { color: green; font-weight: bold; }
+  .status-absent { color: red; font-weight: bold; }
+  .status-paid { color: green; font-weight: bold; }
+  .status-owing { color: orange; font-weight: bold; }
+  .stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-card {
+    flex: 1; min-width: 150px; background: #e8f0fe; padding: 15px;
+    border-radius: 6px; text-align: center; border-left: 4px solid #1a4d8f;
+  }
+  .stat-card h3 { font-size: 26px; color: #1a4d8f; }
+  .stat-card p { font-size: 13px; color: #555; }
+  .empty { text-align: center; color: #888; padding: 20px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏫 Mawuli School - Senior High School</h1>
+  <p>Student Records, PTA Fees & Attendance Management System</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('students', event)">👨‍🎓 Students</button>
+  <button onclick="showPage('fees', event)">💰 PTA Fees</button>
+  <button onclick="showPage('studentAttendance', event)">📋 Student Attendance</button>
+  <button onclick="showPage('teacherAttendance', event)">👩‍🏫 Teacher Attendance</button>
+</nav>
+
+<div class="container">
+
+  <!-- STUDENTS PAGE -->
+  <div id="students" class="page active">
+    <h2>Student Records</h2>
+    <div class="form-row">
+      <input id="sName" placeholder="Full Name">
+      <input id="sId" placeholder="Student ID">
+      <input id="sClass" placeholder="Class (e.g. SHS 2A)">
+      <input id="sPhone" placeholder="Phone">
+      <button class="btn" onclick="addStudent()">➕ Add Student</button>
+    </div>
+    <div class="stats">
+      <div class="stat-card"><h3 id="totalStudents">0</h3><p>Total Students</p></div>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Phone</th><th>Action</th></tr></thead>
+      <tbody id="studentList"></tbody>
+    </table>
+  </div>
+
+  <!-- FEES PAGE -->
+  <div id="fees" class="page">
+    <h2>PTA Fees Records</h2>
+    <div class="form-row">
+      <select id="feeStudent"></select>
+      <input id="feeAmount" type="number" placeholder="Amount (GHS)">
+      <input id="feeDate" type="date">
+      <button class="btn" onclick="addFee()">➕ Record Payment</button>
+    </div>
+    <div class="stats">
+      <div class="stat-card"><h3 id="totalCollected">GHS 0</h3><p>Total Collected</p></div>
+    </div>
+    <table>
+      <thead><tr><th>Student</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="feeList"></tbody>
+    </table>
+  </div>
+
+  <!-- STUDENT ATTENDANCE PAGE -->
+  <div id="studentAttendance" class="page">
+    <h2>Student Attendance</h2>
+    <div class="form-row">
+      <select id="attStudent"></select>
+      <input id="attDate" type="date">
+      <select id="attStatus">
+        <option value="Present">Present</option>
+        <option value="Absent">Absent</option>
+      </select>
+      <button class="btn" onclick="markStudentAttendance()">✔ Mark</button>
+    </div>
+    <table>
+      <thead><tr><th>Student</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="studentAttList"></tbody>
+    </table>
+  </div>
+
+  <!-- TEACHER ATTENDANCE PAGE -->
+  <div id="teacherAttendance" class="page">
+    <h2>Teacher Attendance</h2>
+    <div class="form-row">
+      <input id="tName" placeholder="Teacher Name">
+      <input id="tDate" type="date">
+      <select id="tStatus">
+        <option value="Present">Present</option>
+        <option value="Absent">Absent</option>
+      </select>
+      <button class="btn" onclick="markTeacherAttendance()">✔ Mark</button>
+    </div>
+    <table>
+      <thead><tr><th>Teacher</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="teacherAttList"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+// ===== DATA STORAGE (localStorage) =====
+let students = JSON.parse(localStorage.getItem('mawuli_students') || '[]');
+let fees = JSON.parse(localStorage.getItem('mawuli_fees') || '[]');
+let studentAtt = JSON.parse(localStorage.getItem('mawuli_studentAtt') || '[]');
+let teacherAtt = JSON.parse(localStorage.getItem('mawuli_teacherAtt') || '[]');
+
+function save() {
+  localStorage.setItem('mawuli_students', JSON.stringify(students));
+  localStorage.setItem('mawuli_fees', JSON.stringify(fees));
+  localStorage.setItem('mawuli_studentAtt', JSON.stringify(studentAtt));
+  localStorage.setItem('mawuli_teacherAtt', JSON.stringify(teacherAtt));
+}
+
+// ===== NAVIGATION =====
+function showPage(id, e) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  e.target.classList.add('active');
+  renderAll();
+}
+
+// ===== STUDENTS =====
+function addStudent() {
+  const name = document.getElementById('sName').value.trim();
+  const id = document.getElementById('sId').value.trim();
+  const cls = document.getElementById('sClass').value.trim();
+  const phone = document.getElementById('sPhone').value.trim();
+  if (!name || !id) return alert('Name and ID are required');
+  if (students.some(s => s.id === id)) return alert('Student ID already exists');
+  students.push({ name, id, cls, phone });
+  save();
+  document.getElementById('sName').value = '';
+  document.getElementById('sId').value = '';
+  document.getElementById('sClass').value = '';
+  document.getElementById('sPhone').value = '';
+  renderAll();
+}
+
+function deleteStudent(id) {
+  if (!confirm('Delete this student and all related records?')) return;
+  students = students.filter(s => s.id !== id);
+  fees = fees.filter(f => f.studentId !== id);
+  studentAtt = studentAtt.filter(a => a.studentId !== id);
+  save();
+  renderAll();
+}
+
+// ===== FEES =====
+function addFee() {
+  const studentId = document.getElementById('feeStudent').value;
+  const amount = parseFloat(document.getElementById('feeAmount').value);
+  const date = document.getElementById('feeDate').value;
+  if (!studentId || !amount || !date) return alert('Fill all fields');
+  const student = students.find(s => s.id === studentId);
+  fees.push({ studentId, studentName: student.name, amount, date });
+  save();
+  document.getElementById('feeAmount').value = '';
+  document.getElementById('feeDate').value = '';
+  renderAll();
+}
+
+function deleteFee(i) {
+  if (!confirm('Delete this payment record?')) return;
+  fees.splice(i, 1);
+  save();
+  renderAll();
+}
+
+// ===== STUDENT ATTENDANCE =====
+function markStudentAttendance() {
+  const studentId = document.getElementById('attStudent').value;
+  const date = document.getElementById('attDate').value;
+  const status = document.getElementById('attStatus').value;
+  if (!studentId || !date) return alert('Fill all fields');
+  const student = students.find(s => s.id === studentId);
+  // Replace if same student + date
+  studentAtt = studentAtt.filter(a => !(a.studentId === studentId && a.date === date));
+  studentAtt.push({ studentId, studentName: student.name, date, status });
+  save();
+  document.getElementById('attDate').value = '';
+  renderAll();
+}
+
+function deleteStudentAtt(i) {
+  studentAtt.splice(i, 1);
+  save();
+  renderAll();
+}
+
+// ===== TEACHER ATTENDANCE =====
+function markTeacherAttendance() {
+  const name = document.getElementById('tName').value.trim();
+  const date = document.getElementById('tDate').value;
+  const status = document.getElementById('tStatus').value;
+  if (!name || !date) return alert('Fill all fields');
+  teacherAtt = teacherAtt.filter(a => !(a.name === name && a.date === date));
+  teacherAtt.push({ name, date, status });
+  save();
+  document.getElementById('tName').value = '';
+  document.getElementById('tDate').value = '';
+  renderAll();
+}
+
+function deleteTeacherAtt(i) {
+  teacherAtt.splice(i, 1);
+  save();
+  renderAll();
+}
+
+// ===== RENDER =====
+function renderAll() {
+  // Students table
+  document.getElementById('studentList').innerHTML = students.length
+    ? students.map(s => `<tr>
+        <td>${s.id}</td><td>${s.name}</td><td>${s.cls || '-'}</td><td>${s.phone || '-'}</td>
+        <td><button class="btn danger" onclick="deleteStudent('${s.id}')">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No students added yet</td></tr>';
+  document.getElementById('totalStudents').textContent = students.length;
+
+  // Fee dropdown
+  document.getElementById('feeStudent').innerHTML = students.length
+    ? students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('')
+    : '<option>No students</option>';
+  document.getElementById('attStudent').innerHTML = document.getElementById('feeStudent').innerHTML;
+
+  // Fees table
+  document.getElementById('feeList').innerHTML = fees.length
+    ? fees.map((f, i) => `<tr>
+        <td>${f.studentName}</td><td>GHS ${f.amount.toFixed(2)}</td><td>${f.date}</td>
+        <td class="status-paid">Paid</td>
+        <td><button class="btn danger" onclick="deleteFee(${i})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No fee payments recorded</td></tr>';
+  const total = fees.reduce((sum, f) => sum + f.amount, 0);
+  document.getElementById('totalCollected').textContent = 'GHS ' + total.toFixed(2);
+
+  // Student attendance
+  document.getElementById('studentAttList').innerHTML = studentAtt.length
+    ? studentAtt.map((a, i) => `<tr>
+        <td>${a.studentName}</td><td>${a.date}</td>
+        <td class="status-${a.status.toLowerCase()}">${a.status}</td>
+        <td><button class="btn danger" onclick="deleteStudentAtt(${i})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No attendance records</td></tr>';
+
+  // Teacher attendance
+  document.getElementById('teacherAttList').innerHTML = teacherAtt.length
+    ? teacherAtt.map((a, i) => `<tr>
+        <td>${a.name}</td><td>${a.date}</td>
+        <td class="status-${a.status.toLowerCase()}">${a.status}</td>
+        <td><button class="btn danger" onclick="deleteTeacherAtt(${i})">Delete</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No attendance records</td></tr>';
+}
+
+renderAll();
+</script>
+</body>
+</html>
